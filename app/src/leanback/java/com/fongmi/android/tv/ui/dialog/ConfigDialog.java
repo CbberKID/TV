@@ -97,7 +97,7 @@ public class ConfigDialog implements DialogInterface.OnDismissListener {
                 return "";
         }
     }
-    
+
     private void initView() {
         String address = Server.get().getAddress();
         if (TextUtils.isEmpty(getName())) {
@@ -107,9 +107,8 @@ public class ConfigDialog implements DialogInterface.OnDismissListener {
         binding.text.setSelection(TextUtils.isEmpty(url) ? 0 : url.length());
         binding.positive.setText(edit ? R.string.dialog_edit : R.string.dialog_positive);
         binding.info.setText(ResUtil.getString(R.string.push_info, address).replace("，", "\n"));
-        binding.storage.setVisibility(PermissionX.isGranted(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ? View.GONE : View.VISIBLE);
     }
-
+    
     private void initEvent() {
         EventBus.getDefault().register(this);
         binding.choose.setOnClickListener(this::onChoose);
