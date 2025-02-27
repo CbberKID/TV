@@ -94,7 +94,7 @@ public class ConfigDialog implements DialogInterface.OnDismissListener {
             case 2:
                 return WallConfig.get().getConfig().getName();
             default:
-                return &quot;&quot;;
+                return "";
         }
     }
     
@@ -106,7 +106,7 @@ public class ConfigDialog implements DialogInterface.OnDismissListener {
         binding.code.setImageBitmap(QRCode.getBitmap(address, 200, 0));
         binding.text.setSelection(TextUtils.isEmpty(url) ? 0 : url.length());
         binding.positive.setText(edit ? R.string.dialog_edit : R.string.dialog_positive);
-        binding.info.setText(ResUtil.getString(R.string.push_info, address).replace(&quot;，&quot;, &quot;\n&quot;));
+        binding.info.setText(ResUtil.getString(R.string.push_info, address).replace("，", "\n"));
         binding.storage.setVisibility(PermissionX.isGranted(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) ? View.GONE : View.VISIBLE);
     }
 
@@ -176,8 +176,8 @@ public class ConfigDialog implements DialogInterface.OnDismissListener {
         String text = binding.text.getText().toString().trim();
         if (edit) Config.find(url, type).url(text).update();
         if (text.isEmpty()) {
-            url = &quot;http://101.43.3.89/kid.json&quot;;
-            Config.find(url, 1).name(&quot;内置站源&quot;).update();
+            url = "http://101.43.3.89/kid.json";
+            Config.find(url, 1).name("内置站源").update();
         }
         callback.setConfig(Config.find(text, type));
         dialog.dismiss();
