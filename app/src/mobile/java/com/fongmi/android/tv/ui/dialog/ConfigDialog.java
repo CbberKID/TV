@@ -142,12 +142,12 @@ public class ConfigDialog {
     private void onPositive(DialogInterface dialog, int which) {
         String url = binding.url.getText().toString().trim();
         String name = binding.name.getText().toString().trim();
-        Log.i(&quot;ronglei&quot;,ori + &quot;---&quot; + type + &quot;---&quot; + edit);
+        Log.i("ronglei",ori + "---" + type + "---" + edit);
         if (edit) Config.find(ori, type).url(url).name(name).update();
         if (url.isEmpty()) {
           // 未填写时，点了确定，改成内置源
-            url = &quot;http://101.43.3.89/kid.json&quot;;
-            Config.find(url, 1).name(&quot;内置站源&quot;).update();
+            url = "http://101.43.3.89/kid.json";
+            Config.find(url, 1).name("内置站源").update();
             //Config.delete(ori, type);
         }
         callback.setConfig(Config.find(url, type));
