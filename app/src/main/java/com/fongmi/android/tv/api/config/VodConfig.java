@@ -116,8 +116,7 @@ public class VodConfig {
                 url = "http://101.43.3.89/kid.json";
                 Config.find(url, 0).name("内置站源").update();
             }
-            checkJson(JsonParser.parseString(Decoder.getJson(url)).getAsJsonObject(), callback);
-            // checkJson(Json.parse(Decoder.getJson(config.getUrl())).getAsJsonObject(), callback);
+            checkJson(Json.parse(Decoder.getJson(config.getUrl())).getAsJsonObject(), callback);
         } catch (Throwable e) {
             if (TextUtils.isEmpty(config.getUrl())) App.post(() -> callback.error(""));
             else loadCache(callback, e);
