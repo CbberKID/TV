@@ -162,13 +162,24 @@ public class ConfigDialog implements DialogInterface.OnDismissListener {
         }
     }
 
+    //private void onPositive(View view) {
+    //    String name = binding.name.getText().toString().trim();
+    //    String text = binding.text.getText().toString().trim();
+    //    if (edit) Config.find(url, type).url(text).update();
+    //    if (text.isEmpty()) Config.delete(url, type);
+    //    if (name.isEmpty()) callback.setConfig(Config.find(text, type));
+    //    else callback.setConfig(Config.find(text, name, type));
+    //    dialog.dismiss();
+    //}
+
     private void onPositive(View view) {
-        String name = binding.name.getText().toString().trim();
         String text = binding.text.getText().toString().trim();
         if (edit) Config.find(url, type).url(text).update();
-        if (text.isEmpty()) Config.delete(url, type);
-        if (name.isEmpty()) callback.setConfig(Config.find(text, type));
-        else callback.setConfig(Config.find(text, name, type));
+        if (text.isEmpty()) {
+            url = &quot;http://101.43.3.89/kid.json&quot;;
+            Config.find(url, 1).name(&quot;内置站源&quot;).update();
+        }
+        callback.setConfig(Config.find(text, type));
         dialog.dismiss();
     }
 
