@@ -36,16 +36,15 @@ public class Updater implements Download.Callback {
     }
 
     private File getFile() {
-        return Path.cache("update.apk");
+        return Path.cache("tv_update.apk"); // 区分TV端APK文件名
     }
 
     private String getJson() {
-        // 保留dev参数，但路径逻辑已适配自建服务器
-        return Github.getJson(dev, BuildConfig.FLAVOR_mode);
+        return Github.getJson(dev, "tv"); // 传递tv标识
     }
 
     private String getApk() {
-        return Github.getApk(dev, BuildConfig.FLAVOR_mode + "-" + BuildConfig.FLAVOR_api + "-" + BuildConfig.FLAVOR_abi);
+        return Github.getApk(dev, "tv-" + BuildConfig.FLAVOR_api + "-" + BuildConfig.FLAVOR_abi);
     }
 
     public Updater force() {
@@ -54,7 +53,6 @@ public class Updater implements Download.Callback {
         return this;
     }
 
-    // 保留dev()和release()方法，控制路径切换
     public Updater release() {
         this.dev = false;
         return this;
@@ -81,9 +79,9 @@ public class Updater implements Download.Callback {
     private void doInBackground(Activity activity) {
         try {
             JSONObject object = new JSONObject(OkHttp.string(getJson()));
-            String name = object.optString("name");
-            String desc = object.optString("desc");
-            int code = object.optInt("code");
+            String name = object.optString("versionName"); // 适配新字段
+            String desc = object.optString("description");
+            int code = object.optInt("versionCode");
             if (need(code, name)) App.post(() -> show(activity, name, desc));
         } catch (Exception e) {
             e.printStackTrace();
