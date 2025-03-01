@@ -25,6 +25,7 @@ public class Updater implements Download.Callback {
 
     private DialogUpdateBinding binding;
     private AlertDialog dialog;
+    private boolean dev;
 
     private static class Loader {
         static volatile Updater INSTANCE = new Updater();
@@ -38,19 +39,29 @@ public class Updater implements Download.Callback {
         return Path.cache("update.apk");
     }
 
-    // 直接调用新的Github.getJson()
     private String getJson() {
-        return Github.getJson();
+        // 保留dev参数，但路径逻辑已适配自建服务器
+        return Github.getJson(dev, BuildConfig.FLAVOR_mode);
     }
 
-    // 通过JSON中的url字段获取APK地址
-    private String getApk(String url) {
-        return Github.getApk(url);
+    private String getApk() {
+        return Github.getApk(dev, BuildConfig.FLAVOR_mode + "-" + BuildConfig.FLAVOR_api + "-" + BuildConfig.FLAVOR_abi);
     }
 
     public Updater force() {
         Notify.show(R.string.update_check);
         Setting.putUpdate(true);
+        return this;
+    }
+
+    // 保留dev()和release()方法，控制路径切换
+    public Updater release() {
+        this.dev = false;
+        return this;
+    }
+
+    public Updater dev() {
+        this.dev = true;
         return this;
     }
 
@@ -63,49 +74,33 @@ public class Updater implements Download.Callback {
         App.execute(() -> doInBackground(activity));
     }
 
-    // 版本检查逻辑（根据versionCode判断）
-    private boolean need(int remoteCode, int localCode) {
-        return Setting.getUpdate() && remoteCode > localCode;
+    private boolean need(int code, String name) {
+        return Setting.getUpdate() && (dev ? !name.equals(BuildConfig.VERSION_NAME) && code >= BuildConfig.VERSION_CODE : code > BuildConfig.VERSION_CODE);
     }
 
     private void doInBackground(Activity activity) {
         try {
-            // 获取JSON数据
-            String json = OkHttp.string(getJson());
-            JSONObject object = new JSONObject(json);
-            
-            // 解析字段（与你的JSON结构匹配）
-            String versionName = object.optString("versionName");
-            String description = object.optString("description");
-            int versionCode = object.optInt("versionCode");
-            String apkUrl = object.optString("url"); // APK下载路径
-            
-            // 获取本地版本号
-            int localVersionCode = BuildConfig.VERSION_CODE;
-            
-            if (need(versionCode, localVersionCode)) {
-                App.post(() -> show(activity, versionName, description, apkUrl));
-            }
+            JSONObject object = new JSONObject(OkHttp.string(getJson()));
+            String name = object.optString("name");
+            String desc = object.optString("desc");
+            int code = object.optInt("code");
+            if (need(code, name)) App.post(() -> show(activity, name, desc));
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // 添加apkUrl参数
-    private void show(Activity activity, String version, String desc, String apkUrl) {
+    private void show(Activity activity, String version, String desc) {
         binding = DialogUpdateBinding.inflate(LayoutInflater.from(activity));
         binding.version.setText(ResUtil.getString(R.string.update_version, version));
-        binding.confirm.setOnClickListener(v -> confirm(apkUrl)); // 传递apkUrl
+        binding.confirm.setOnClickListener(this::confirm);
         binding.cancel.setOnClickListener(this::cancel);
         check().create(activity).show();
         binding.desc.setText(desc);
     }
 
     private AlertDialog create(Activity activity) {
-        return dialog = new MaterialAlertDialogBuilder(activity)
-                .setView(binding.getRoot())
-                .setCancelable(false)
-                .create();
+        return dialog = new MaterialAlertDialogBuilder(activity).setView(binding.getRoot()).setCancelable(false).create();
     }
 
     private void cancel(View view) {
@@ -113,10 +108,9 @@ public class Updater implements Download.Callback {
         dismiss();
     }
 
-    // 使用动态APK地址
-    private void confirm(String apkUrl) {
+    private void confirm(View view) {
         binding.confirm.setEnabled(false);
-        Download.create(getApk(apkUrl), getFile(), this).start();
+        Download.create(getApk(), getFile(), this).start();
     }
 
     private void dismiss() {
