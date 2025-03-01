@@ -37,11 +37,11 @@ public class Updater implements Download.Callback {
     }
 
     private File getFile() {
-        return Path.cache("mobile_update.apk"); // 区分手机端APK文件名
+        return Path.cache("mobile_update.apk"); // 手机端APK缓存文件名
     }
 
     private String getJson() {
-        return Github.getJson(dev, "mobile"); // 传递mobile标识
+        return Github.getJson(dev, "mobile"); // 设备类型标识为"mobile"
     }
 
     private String getApk() {
@@ -64,10 +64,23 @@ public class Updater implements Download.Callback {
         return this;
     }
 
+    private Updater check() {
+        dismiss();
+        return this;
+    }
+
+    public void start(Activity activity) {
+        App.execute(() -> doInBackground(activity));
+    }
+
+    private boolean need(int code, String name) {
+        return Setting.getUpdate() && (dev ? !name.equals(BuildConfig.VERSION_NAME) && code >= BuildConfig.VERSION_CODE : code > BuildConfig.VERSION_CODE);
+    }
+
     private void doInBackground(Activity activity) {
         try {
             JSONObject object = new JSONObject(OkHttp.string(getJson()));
-            String name = object.optString("versionName"); // 适配新字段
+            String name = object.optString("versionName");
             String desc = object.optString("description");
             int code = object.optInt("versionCode");
             if (need(code, name)) App.post(() -> show(activity, name, desc));
@@ -85,7 +98,13 @@ public class Updater implements Download.Callback {
     }
 
     private AlertDialog create(Activity activity, String title) {
-        return dialog = new MaterialAlertDialogBuilder(activity).setTitle(title).setView(binding.getRoot()).setPositiveButton(R.string.update_confirm, null).setNegativeButton(R.string.dialog_negative, null).setCancelable(false).create();
+        return dialog = new MaterialAlertDialogBuilder(activity)
+                .setTitle(title)
+                .setView(binding.getRoot())
+                .setPositiveButton(R.string.update_confirm, null)
+                .setNegativeButton(R.string.dialog_negative, null)
+                .setCancelable(false)
+                .create();
     }
 
     private void cancel(View view) {
