@@ -26,6 +26,7 @@ public class Updater implements Download.Callback {
     private DialogUpdateBinding binding;
     private AlertDialog dialog;
     private boolean dev;
+    private String apkUrl;
 
     private static class Loader {
         static volatile Updater INSTANCE = new Updater();
@@ -36,15 +37,11 @@ public class Updater implements Download.Callback {
     }
 
     private File getFile() {
-        return Path.cache("tv_update.apk"); // TV端APK缓存文件名
+        return Path.cache("tv_update.apk");
     }
 
     private String getJson() {
-        return Github.getJson(dev, "tv"); // 设备类型标识为"tv"
-    }
-
-    private String getApk() {
-        return Github.getApk(dev, "tv-" + BuildConfig.FLAVOR_api + "-" + BuildConfig.FLAVOR_abi);
+        return Github.getJson(dev, "tv");
     }
 
     public Updater force() {
@@ -78,12 +75,14 @@ public class Updater implements Download.Callback {
 
     private void doInBackground(Activity activity) {
         try {
-            JSONObject object = new JSONObject(OkHttp.string(getJson()));
-            String name = object.optString("versionName");
-            String desc = object.optString("description");
-            int code = object.optInt("versionCode");
-            if (need(code, name)) App.post(() -> show(activity, name, desc));
+            JSONObject json = new JSONObject(OkHttp.string(getJson()));
+            String versionName = json.getString("versionName");
+            String description = json.getString("description");
+            int versionCode = json.getInt("versionCode");
+            apkUrl = json.getString("url");
+            if (need(versionCode, versionName)) App.post(() -> show(activity, versionName, description));
         } catch (Exception e) {
+            Notify.show("更新检查失败: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -91,8 +90,8 @@ public class Updater implements Download.Callback {
     private void show(Activity activity, String version, String desc) {
         binding = DialogUpdateBinding.inflate(LayoutInflater.from(activity));
         binding.version.setText(ResUtil.getString(R.string.update_version, version));
-        binding.confirm.setOnClickListener(this::confirm);
-        binding.cancel.setOnClickListener(this::cancel);
+        binding.confirm.setOnClickListener(v -> confirm());
+        binding.cancel.setOnClickListener(v -> cancel());
         check().create(activity).show();
         binding.desc.setText(desc);
     }
@@ -104,14 +103,14 @@ public class Updater implements Download.Callback {
                 .create();
     }
 
-    private void cancel(View view) {
+    private void cancel() {
         Setting.putUpdate(false);
         dismiss();
     }
 
-    private void confirm(View view) {
+    private void confirm() {
         binding.confirm.setEnabled(false);
-        Download.create(getApk(), getFile(), this).start();
+        Download.create(Github.getApk(apkUrl), getFile(), this).start();
     }
 
     private void dismiss() {
@@ -128,7 +127,8 @@ public class Updater implements Download.Callback {
 
     @Override
     public void error(String msg) {
-        Notify.show(msg);
+        Notify.show("下载失败: " + msg);
+        binding.confirm.setEnabled(true);
         dismiss();
     }
 
