@@ -36,11 +36,11 @@ public class Updater implements Download.Callback {
     }
 
     private File getFile() {
-        return Path.cache("tv_update.apk"); // 区分TV端APK文件名
+        return Path.cache("tv_update.apk"); // TV端APK缓存文件名
     }
 
     private String getJson() {
-        return Github.getJson(dev, "tv"); // 传递tv标识
+        return Github.getJson(dev, "tv"); // 设备类型标识为"tv"
     }
 
     private String getApk() {
@@ -79,7 +79,7 @@ public class Updater implements Download.Callback {
     private void doInBackground(Activity activity) {
         try {
             JSONObject object = new JSONObject(OkHttp.string(getJson()));
-            String name = object.optString("versionName"); // 适配新字段
+            String name = object.optString("versionName");
             String desc = object.optString("description");
             int code = object.optInt("versionCode");
             if (need(code, name)) App.post(() -> show(activity, name, desc));
@@ -98,7 +98,10 @@ public class Updater implements Download.Callback {
     }
 
     private AlertDialog create(Activity activity) {
-        return dialog = new MaterialAlertDialogBuilder(activity).setView(binding.getRoot()).setCancelable(false).create();
+        return dialog = new MaterialAlertDialogBuilder(activity)
+                .setView(binding.getRoot())
+                .setCancelable(false)
+                .create();
     }
 
     private void cancel(View view) {
