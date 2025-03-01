@@ -2,17 +2,13 @@ package com.github.catvod.utils;
 
 public class Github {
 
-    public static final String URL = "https://raw.githubusercontent.com/FongMi/Release/fongmi";
+    public static final String URL = "http://www.176868.xyz/fongmi";
 
-    private static String getUrl(String path, String name) {
-        return URL + "/" + path + "/" + name;
+    public static String getJson() {
+        return URL + "/update.json";
     }
 
-    public static String getJson(boolean dev, String name) {
-        return getUrl("apk/" + (dev ? "dev" : "release"), name + ".json");
-    }
-
-    public static String getApk(boolean dev, String name) {
-        return getUrl("apk/" + (dev ? "dev" : "release"), name + ".apk");
+    public static String getApk(String url) {
+        return URL + "/" + url; 
     }
 }
