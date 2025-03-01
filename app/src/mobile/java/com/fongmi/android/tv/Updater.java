@@ -22,91 +22,70 @@ import org.json.JSONObject;
 import java.io.File;
 import java.util.Locale;
 
-public class MobileUpdater implements Download.Callback {
+public class Updater implements Download.Callback {
 
     private DialogUpdateBinding binding;
     private AlertDialog dialog;
+    private boolean dev;
 
     private static class Loader {
-        static volatile MobileUpdater INSTANCE = new MobileUpdater();
+        static volatile Updater INSTANCE = new Updater();
     }
 
-    public static MobileUpdater get() {
+    public static Updater get() {
         return Loader.INSTANCE;
     }
 
     private File getFile() {
-        return Path.cache("mobile_update.apk");
+        return Path.cache("mobile_update.apk"); // 区分手机端APK文件名
     }
 
-    // 直接获取自定义服务器JSON地址
     private String getJson() {
-        return Github.getJson();
+        return Github.getJson(dev, "mobile"); // 传递mobile标识
     }
 
-    // 从JSON中动态获取APK地址
-    private String getApk(String url) {
-        return Github.getApk(url);
+    private String getApk() {
+        return Github.getApk(dev, "mobile-" + BuildConfig.FLAVOR_api + "-" + BuildConfig.FLAVOR_abi);
     }
 
-    public MobileUpdater force() {
+    public Updater force() {
         Notify.show(R.string.update_check);
         Setting.putUpdate(true);
         return this;
     }
 
-    private MobileUpdater check() {
-        dismiss();
+    public Updater release() {
+        this.dev = false;
         return this;
     }
 
-    public void start(Activity activity) {
-        App.execute(() -> doInBackground(activity));
-    }
-
-    // 简化版本检查逻辑（仅根据versionCode）
-    private boolean need(int remoteCode) {
-        return Setting.getUpdate() && remoteCode > BuildConfig.VERSION_CODE;
+    public Updater dev() {
+        this.dev = true;
+        return this;
     }
 
     private void doInBackground(Activity activity) {
         try {
-            String jsonStr = OkHttp.string(getJson());
-            JSONObject json = new JSONObject(jsonStr);
-            
-            // 解析新JSON字段
-            String versionName = json.optString("versionName");
-            String description = json.optString("description");
-            int versionCode = json.optInt("versionCode");
-            String apkUrl = json.optString("url");
-            
-            if (need(versionCode)) {
-                App.post(() -> show(activity, versionName, description, apkUrl));
-            }
+            JSONObject object = new JSONObject(OkHttp.string(getJson()));
+            String name = object.optString("versionName"); // 适配新字段
+            String desc = object.optString("description");
+            int code = object.optInt("versionCode");
+            if (need(code, name)) App.post(() -> show(activity, name, desc));
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // 添加apkUrl参数传递
-    private void show(Activity activity, String version, String desc, String apkUrl) {
+    private void show(Activity activity, String version, String desc) {
         binding = DialogUpdateBinding.inflate(LayoutInflater.from(activity));
         check().create(activity, ResUtil.getString(R.string.update_version, version)).show();
-        
-        // 设置带参数的点击监听器
-        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> confirm(apkUrl));
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(this::confirm);
         dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener(this::cancel);
         binding.desc.setText(desc);
     }
 
     private AlertDialog create(Activity activity, String title) {
-        return dialog = new MaterialAlertDialogBuilder(activity)
-                .setTitle(title)
-                .setView(binding.getRoot())
-                .setPositiveButton(R.string.update_confirm, null)
-                .setNegativeButton(R.string.dialog_negative, null)
-                .setCancelable(false)
-                .create();
+        return dialog = new MaterialAlertDialogBuilder(activity).setTitle(title).setView(binding.getRoot()).setPositiveButton(R.string.update_confirm, null).setNegativeButton(R.string.dialog_negative, null).setCancelable(false).create();
     }
 
     private void cancel(View view) {
@@ -114,10 +93,9 @@ public class MobileUpdater implements Download.Callback {
         dialog.dismiss();
     }
 
-    // 使用动态APK地址
-    private void confirm(String apkUrl) {
-        Download.create(getApk(apkUrl), getFile(), this).start();
-        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
+    private void confirm(View view) {
+        Download.create(getApk(), getFile(), this).start();
+        view.setEnabled(false);
     }
 
     private void dismiss() {
@@ -129,9 +107,7 @@ public class MobileUpdater implements Download.Callback {
 
     @Override
     public void progress(int progress) {
-        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setText(
-                String.format(Locale.getDefault(), "%1$d%%", progress)
-        );
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setText(String.format(Locale.getDefault(), "%1$d%%", progress));
     }
 
     @Override
