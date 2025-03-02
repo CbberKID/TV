@@ -10,6 +10,6 @@ public class Github {
     }
 
     public static String getApk(String url) {
-        return BASE_URL + "/" + url;
+        return url;
     }
 }
